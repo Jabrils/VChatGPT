@@ -18,7 +18,11 @@ def listen():
         try:
             text = recognizer.recognize_google(audio_data)
             print(f"\t{Fore.GREEN}You{Style.RESET_ALL}:", text)
-            return text
+
+            if "chai" in text.lower():
+                return text.split('chai')[1]
+            else:
+                return None
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand audio")
         except sr.RequestError as e:
@@ -65,8 +69,6 @@ while True:  # Keep the conversation going until the user decides to exit
     thread.append({"role": "user", "content": user_input})
 
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    # print(f"\t{Fore.GREEN}Human [{current_datetime}]{Style.RESET_ALL}: {user_input}")
 
     chat = openai.ChatCompletion.create(model='gpt-4', messages=thread)
     reply = chat.choices[0].message.content
