@@ -17,9 +17,11 @@ from colorama import Fore, Style, init
 # ... (rest of your imports)
 
 running = True
+speaking = False
 
-def display_image(image_path_open, image_path_closed):
+def display_image(image_path_smile, image_path_blinking, image_path_talking):
     global running  # Access the global running flag
+    global speaking
     # Initialize Pygame
     pygame.init()
 
@@ -28,20 +30,24 @@ def display_image(image_path_open, image_path_closed):
     screen = pygame.display.set_mode(window_size, pygame.NOFRAME)
 
     # Load the images
-    image_open = pygame.image.load(image_path_open)
-    image_closed = pygame.image.load(image_path_closed)
+    image_smile = pygame.image.load(image_path_smile)
+    image_blinking = pygame.image.load(image_path_blinking)
+    image_talking = pygame.image.load(image_path_talking)
 
     # Start with eyes open
-    current_image = image_open
+    current_image = image_smile
 
     # Create a clock object to manage time
     clock = pygame.time.Clock()
 
     # Set the initial next blink time
     next_blink_time = pygame.time.get_ticks() + random.randint(2000, 5000)  # 2 to 5 seconds
+    next_talk_time = 0
 
     # Wait for user to quit
     running = True
+    talk_state = True
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -53,19 +59,31 @@ def display_image(image_path_open, image_path_closed):
                     break
 
         current_time = pygame.time.get_ticks()
-        if current_time >= next_blink_time:
-            current_image = image_closed  # Close eyes
-            screen.blit(current_image, (0, 0))
-            pygame.display.flip()
 
-            next_blink_time = current_time + random.randint(50, 150)  # 0.1 to 0.5 seconds
+        # 
+        if speaking:
+            if current_time >= next_talk_time:
+                if talk_state:
+                    current_image = image_smile
+                    talk_state = False
+                else:
+                    current_image = image_talking
+                    talk_state = True
+                next_talk_time = current_time + 75  # Set next change time to 1 second later
+        else:
+            if current_time >= next_blink_time:
+                current_image = image_blinking  # Close eyes
+                screen.blit(current_image, (0, 0))
+                pygame.display.flip()
 
-            while pygame.time.get_ticks() < next_blink_time:
-                pass  # Busy wait (this can be replaced with other processing)
+                next_blink_time = current_time + random.randint(50, 150)  # 0.1 to 0.5 seconds
 
-            current_image = image_open  # Open eyes
-            next_blink_time = current_time + random.randint(2000, 5000)  # 2 to 5 seconds
+                while pygame.time.get_ticks() < next_blink_time:
+                    pass  # Busy wait (this can be replaced with other processing)
 
+                current_image = image_smile  # Open eyes
+                next_blink_time = current_time + random.randint(2000, 5000)  # 2 to 5 seconds
+        
         # Blit the current image and update the display
         screen.blit(current_image, (0, 0))
         pygame.display.flip()
@@ -79,9 +97,12 @@ def display_image(image_path_open, image_path_closed):
     sys.exit()
 
 def speak(text):
+    global speaking
     engine = pyttsx3.init()
     engine.say(text)
+    speaking = True
     engine.runAndWait()
+    speaking = False
 
 def listen():
     global running  # Access the global running flag
@@ -160,11 +181,12 @@ def handle_conversation():
 def main():
     global running  # Access the global running flag
     while running:
-        image_path_open = 'Chai Faces/Smile.png'
-        image_path_closed = 'Chai Faces/Blink.png'
+        image_path_smile = 'Chai Faces/Smile.png'
+        image_path_blink = 'Chai Faces/Blink.png'
+        image_path_talking = 'Chai Faces/Talking.png'
         
         # Create threads for image display and conversation handling
-        display_thread = threading.Thread(target=display_image, args=(image_path_open, image_path_closed))
+        display_thread = threading.Thread(target=display_image, args=(image_path_smile, image_path_blink, image_path_talking))
         conversation_thread = threading.Thread(target=handle_conversation)
         
         # Start the threads
