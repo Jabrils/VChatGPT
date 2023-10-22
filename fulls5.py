@@ -57,6 +57,7 @@ def monitor_audio_state():
 def play_audio_queue():
     global voice
 
+    print(voice)
     while voice:  # Continue until the voice list is empty
         wav_path = voice[0]  # Get the first path in the list
         wave_obj = sa.WaveObject.from_wave_file(wav_path)
@@ -241,7 +242,7 @@ def handle_conversation():
 def main():
     global running  # Access the global running flag
     # Start the Bash script
-    bash_script_process = subprocess.Popen(['piper_backend2.sh'])
+    bash_script_process = subprocess.Popen(['./piper_backend2.sh'])
 
     while running:
         image_path_smile = 'Chai Faces/Smile.png'
@@ -253,22 +254,20 @@ def main():
         # Create threads for image display and conversation handling
         display_thread = threading.Thread(target=display_image, args=(image_path_smile, image_path_blink, image_path_talking, image_path_thinking, image_path_listening))
         conversation_thread = threading.Thread(target=handle_conversation)
+        audio_monitor_thread = threading.Thread(target=monitor_audio_state)
+        play_audio_queue_thread = threading.Thread(target=play_audio_queue)
 
         # Start the threads
         display_thread.start()
         conversation_thread.start()
+        audio_monitor_thread.start()
+        play_audio_queue_thread.start()
 
         # Wait for both threads to finish (this will block indefinitely in this example)
         display_thread.join()
         conversation_thread.join()
-
-        # 
-        audio_monitor_thread = threading.Thread(target=monitor_audio_state)
-        audio_monitor_thread.start()
-
-        # 
-        audio_monitor_thread = threading.Thread(target=play_audio_queue)
-        audio_monitor_thread.start()
+        audio_monitor_thread.join()
+        play_audio_queue_thread.join()
 
 if __name__ == "__main__":
     main()
