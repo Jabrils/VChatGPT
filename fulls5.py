@@ -6,7 +6,6 @@ import threading
 import random
 import sys
 import pyttsx3
-import speech_recognition as sr
 import os
 import json
 from datetime import datetime
@@ -14,10 +13,57 @@ import argparse
 import subprocess
 import backend as b  # Assuming this is a module you have
 from colorama import Fore, Style, init
+import simpleaudio as sa
 # ... (rest of your imports)
 
 running = True
 state = "smile"
+voice = []
+
+def run_piper(text):
+    global state
+
+    splitter = text.split('.')
+
+    for i, s in enumerate(splitter):
+        command = f"""
+        echo '{s.replace("'","")}' | \
+        /home/brilja/piper2/piper/piper --model /home/brilja/piper2/amy/en_US-amy-medium.onnx --output_file /temp/{i}.wav
+        """
+
+        process = subprocess.Popen(command, shell=True, executable="/bin/bash")
+        process.wait()
+
+def run_piper2(text):
+    global state
+    with open('/tmp/piper_fifo', 'w') as fifo:
+        fifo.write(text)
+
+    state = "talking"
+
+def monitor_audio_state():
+    global running  # Access the global running flag
+    global state
+    global voice
+    
+    while running:  # Assuming `running` is a flag you use to control your threads
+        if os.path.exists('/tmp/audio_finished'):
+            with open('/tmp/audio_finished', 'r') as file:
+                voice.append(file.read().strip())
+
+            # state = "smile"
+            os.remove('/tmp/audio_finished')  # Acknowledge by deleting the file
+
+def play_audio_queue():
+    global voice
+
+    while voice:  # Continue until the voice list is empty
+        wav_path = voice[0]  # Get the first path in the list
+        wave_obj = sa.WaveObject.from_wave_file(wav_path)
+        play_obj = wave_obj.play()
+        play_obj.wait_done()  # Wait for the audio to finish playing
+        voice.remove(wav_path)  # Remove the path from the list
+
 
 def display_image(image_path_smile, image_path_blinking, image_path_talking, image_path_thinking, image_path_listening):
     global running  # Access the global running flag
@@ -185,7 +231,7 @@ def handle_conversation():
         print(f'\t{Fore.RED}AI [{current_datetime}]{Style.RESET_ALL}: "{reply}"')
 
         # Using Text To Speech to read the reply out loud
-        speak(reply)
+        run_piper2(reply)
 
         # add the AI's reply to the thread
         thread.append({"role": "system", "content": reply})
@@ -194,6 +240,9 @@ def handle_conversation():
 
 def main():
     global running  # Access the global running flag
+    # Start the Bash script
+    bash_script_process = subprocess.Popen(['piper_backend2.sh'])
+
     while running:
         image_path_smile = 'Chai Faces/Smile.png'
         image_path_blink = 'Chai Faces/Blink.png'
@@ -212,6 +261,14 @@ def main():
         # Wait for both threads to finish (this will block indefinitely in this example)
         display_thread.join()
         conversation_thread.join()
+
+        # 
+        audio_monitor_thread = threading.Thread(target=monitor_audio_state)
+        audio_monitor_thread.start()
+
+        # 
+        audio_monitor_thread = threading.Thread(target=play_audio_queue)
+        audio_monitor_thread.start()
 
 if __name__ == "__main__":
     main()

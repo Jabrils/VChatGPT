@@ -19,6 +19,38 @@ from colorama import Fore, Style, init
 running = True
 state = "smile"
 
+def run_piper(text):
+    global state
+    command = f"""
+    echo '{text.replace("'","")}' | \
+    /home/brilja/piper2/piper/piper --model /home/brilja/piper2/amy/en_US-amy-medium.onnx --output_file /temp/welcome.wav
+    """
+
+    # command = f"""
+    # echo '{text.replace("'","")}' | \
+    # /home/brilja/piper2/piper/piper --model /home/brilja/piper2/amy/en_US-amy-medium.onnx --output-raw | \
+    # aplay -r 22050 -f S16_LE -t raw -
+    # """
+
+    state = "talking"
+    process = subprocess.Popen(command, shell=True, executable="/bin/bash")
+    process.wait()
+    state = "smile"
+
+def run_piper2(text):
+    global state
+    with open('/tmp/piper_fifo', 'w') as fifo:
+        fifo.write(text)
+    state = "talking"
+
+def monitor_audio_state():
+    global running  # Access the global running flag
+    global state
+    while running:  # Assuming `running` is a flag you use to control your threads
+        if os.path.exists('/tmp/audio_finished'):
+            state = "smile"
+            os.remove('/tmp/audio_finished')  # Acknowledge by deleting the file
+        
 def display_image(image_path_smile, image_path_blinking, image_path_talking, image_path_thinking, image_path_listening):
     global running  # Access the global running flag
     global state
@@ -185,7 +217,7 @@ def handle_conversation():
         print(f'\t{Fore.RED}AI [{current_datetime}]{Style.RESET_ALL}: "{reply}"')
 
         # Using Text To Speech to read the reply out loud
-        speak(reply)
+        run_piper2(reply)
 
         # add the AI's reply to the thread
         thread.append({"role": "system", "content": reply})
@@ -194,6 +226,9 @@ def handle_conversation():
 
 def main():
     global running  # Access the global running flag
+    # Start the Bash script
+    bash_script_process = subprocess.Popen(['piper_backend.sh'])
+
     while running:
         image_path_smile = 'Chai Faces/Smile.png'
         image_path_blink = 'Chai Faces/Blink.png'
@@ -212,6 +247,10 @@ def main():
         # Wait for both threads to finish (this will block indefinitely in this example)
         display_thread.join()
         conversation_thread.join()
+
+        # 
+        audio_monitor_thread = threading.Thread(target=monitor_audio_state)
+        audio_monitor_thread.start()
 
 if __name__ == "__main__":
     main()
