@@ -11,7 +11,6 @@ import json
 from datetime import datetime
 import argparse
 import subprocess
-import backend as b  # Assuming this is a module you have
 from colorama import Fore, Style, init
 import simpleaudio as sa
 import re
@@ -21,6 +20,7 @@ running = True
 state = "smile"
 voice = []
 order = 0
+i_heard_you = 2
 
 def run_piper(text):
     global state
@@ -85,6 +85,8 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
     # Set the dimensions of the window
     window_size = (480, 800)
     screen = pygame.display.set_mode(window_size, pygame.NOFRAME)
+    # Hide the cursor
+    pygame.mouse.set_visible(False)
 
     # Load the images
     image_smile = pygame.image.load(image_path_smile)
@@ -109,6 +111,8 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
 
     while running:
         try:
+            check_for_heard()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -136,6 +140,9 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
             elif state is "listening":
                 current_image = image_listening
             elif state is "smile":
+                if current_image is image_talking:
+                    current_image = image_smile
+
                 if current_time >= next_blink_time:
                     current_image = image_blinking  # Close eyes
                     screen.blit(current_image, (0, 0))
@@ -178,7 +185,7 @@ def listen():
         recognizer = sr.Recognizer()
 
         with sr.Microphone() as source:
-            state = "smile"
+            #state = "smile"
             print("Please speak something...")
             audio_data = recognizer.listen(source)
             print("Trying to understand...")
@@ -196,9 +203,20 @@ def listen():
                 print("Could not request results from Google Speech Recognition service; {0}".format(e))
                 return None
 
+def check_for_heard():
+    global i_heard_you
+    global state
+
+    # 
+    if state is "listening" and  i_heard_you <= 0:
+        state = "smile"
+    
+    i_heard_you -= 1
+
 def handle_conversation():
     global running  # Access the global running flag
     global state
+    global i_heard_you
     # Initialize colorama
     init()
 
@@ -221,11 +239,13 @@ def handle_conversation():
     while running:  # Keep the conversation going until the user decides to exit
         try:
             user_input = listen()
-            state = "listening"
             if user_input is None:
                 print("Didn't catch that. Trying again.")
                 continue  # This will jump back to the start of the while loop
             elif user_input is "~":
+                if state is "smile":
+                        state = "listening"
+                        i_heard_you = 1000
                 print("You weren't talking to me so ill ignore that.")
                 continue  # This will jump back to the start of the while loop
             if user_input.lower() in ["exit", "quit"]:
@@ -266,8 +286,8 @@ def main():
     create_directories()
     
     # Start the Bash script
-    #bash_script_process = subprocess.Popen(['./piper_backend3.sh'])
-    speak("startup activated")
+    #bash_script_process = subprocess.Popen(['./fifo_handler.sh'])
+    speak("Hi, I'm Chai!")
     
     while running:
         image_path_smile = './Chai Faces/Smile.png'
