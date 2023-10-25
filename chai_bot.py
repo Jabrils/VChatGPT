@@ -286,15 +286,15 @@ def main():
     create_directories()
     
     # Start the Bash script
-    #bash_script_process = subprocess.Popen(['./fifo_handler.sh'])
+    bash_script_process = subprocess.Popen(['/home/brilja/Desktop/VChatGPT/fifo_handler.sh'])
     speak("Hi, I'm Chai!")
     
     while running:
-        image_path_smile = './Chai Faces/Smile.png'
-        image_path_blink = 'Chai Faces/Blink.png'
-        image_path_talking = 'Chai Faces/Talking.png'
-        image_path_thinking = 'Chai Faces/Thinking.png'
-        image_path_listening = 'Chai Faces/Listening.png'
+        image_path_smile = '/home/brilja/Desktop/VChatGPT/Chai Faces/Smile.png'
+        image_path_blink = '/home/brilja/Desktop/VChatGPT/Chai Faces/Blink.png'
+        image_path_talking = '/home/brilja/Desktop/VChatGPT/Chai Faces/Talking.png'
+        image_path_thinking = '/home/brilja/Desktop/VChatGPT/Chai Faces/Thinking.png'
+        image_path_listening = '/home/brilja/Desktop/VChatGPT/Chai Faces/Listening.png'
 
         # Create threads for image display and conversation handling
         display_thread = threading.Thread(target=display_image, args=(image_path_smile, image_path_blink, image_path_talking, image_path_thinking, image_path_listening))
