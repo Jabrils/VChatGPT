@@ -112,7 +112,7 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
     while running:
         try:
             check_for_heard()
-
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -208,7 +208,7 @@ def check_for_heard():
     global state
 
     # 
-    if state is "listening" and  i_heard_you <= 0:
+    if state is "listening" and i_heard_you <= 0:
         state = "smile"
     
     i_heard_you -= 1
@@ -245,7 +245,7 @@ def handle_conversation():
             elif user_input is "~":
                 if state is "smile":
                         state = "listening"
-                        i_heard_you = 1000
+                        i_heard_you = 100
                 print("You weren't talking to me so ill ignore that.")
                 continue  # This will jump back to the start of the while loop
             if user_input.lower() in ["exit", "quit"]:
