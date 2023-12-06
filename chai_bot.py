@@ -21,18 +21,21 @@ state = "smile"
 voice = []
 order = 0
 i_heard_you = 2
+dir_tmp = "/home/brilja/Desktop/VChatGPT/tmp"
 
 def run_piper(text):
     global state
     global order
+    
+    create_directories()
 
-    split_text = re.split(r'[.!?,";:]', text)
+    split_text = re.split(r'[.!?;:]', text)
     # print(split_text)
     for t in split_text:
         padded_number = "{:04}".format(order)  # Pads with zeros to a width of 4
 
         # 
-        with open(f'/tmp/fifos/piper_fifo_{padded_number}', 'w') as fifo:
+        with open(f'{dir_tmp}/fifos/piper_fifo_{padded_number}', 'w') as fifo:
             fifo.write(t)
         order+=1
 
@@ -43,8 +46,10 @@ def monitor_audio_state():
     global state
     global voice
     
+    create_directories()
+
     while running:  # Assuming `running` is a flag you use to control your threads
-        path_To = "/tmp/wavs"
+        path_To = f'{dir_tmp}/wavs'
 
         # 
         if os.listdir(path_To):
@@ -193,6 +198,7 @@ def listen():
                 text = recognizer.recognize_google(audio_data)
                 print(f"\t{Fore.GREEN}You{Style.RESET_ALL}:", text)
 
+                # 
                 if "chai" in text.lower():
                     return text.split('chai')[1]
                 else:
@@ -233,9 +239,9 @@ def handle_conversation():
 
     openai.api_key = key
 
-    primer = "Pretend you are a human named Chai having dynamic human conversations, so use words like 'I' & 'my' to sound more human, & please give sarcastic replies & please be a little mean & a smartass, it's very funny so no one will be offended. All all of your text will be read using TTS. Please keep your anwsers relatively brief unless asked to expand upon, & also please understand all text input will be Speech To Text, so there will be a few typos. Optimize your speaking patterns as if you are having a natural vocal conversation & NEVER say 'As an AI...'"
+    personality = open("personality", "r").read().strip('\n')
     thread = []
-    thread.append({"role": "system", "content": primer})
+    thread.append({"role": "system", "content": personality})
 
     while running:  # Keep the conversation going until the user decides to exit
         try:
@@ -278,16 +284,18 @@ def handle_conversation():
             print(f"Exception: {e}")
 
 def create_directories():
-    dirs_to_create = ["/tmp/fifos", "/tmp/wavs"]
+    dirs_to_create = [f"{dir_tmp}/fifos", f"{dir_tmp}/wavs"]
+
     for dir_path in dirs_to_create:
         os.makedirs(dir_path, exist_ok=True)
 
 def main():
     global running  # Access the global running flag
+    print("Current working directory:", os.getcwd())
     create_directories()
     
     # Start the Bash script
-    bash_script_process = subprocess.Popen(['/home/brilja/Desktop/VChatGPT/fifo_handler.sh'])
+    bash_script_process = subprocess.Popen(['bash', '/home/brilja/Desktop/VChatGPT/fifo_handler.sh'])
     speak("Hi, I'm Chai!")
     
     while running:

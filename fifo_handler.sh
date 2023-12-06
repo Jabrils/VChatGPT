@@ -1,12 +1,12 @@
 #!/bin/bash
 
 counter=0
-dir="/tmp/fifos"
+dir="/home/brilja/Desktop/VChatGPT/tmp/fifos"
 while :; do
     for fifo_file in $dir/*; do
         next_numb=$(printf "%04d" $counter)
         # Start cat and Piper process
-        { cat "$fifo_file" | /home/brilja/piper2/piper/piper --model /home/brilja/piper2/amy/en_US-amy-medium.onnx --output_file /tmp/wavs/heyo${next_numb}.wav; } &
+        { cat "$fifo_file" | /home/brilja/piper2/piper/piper --model /home/brilja/piper2/amy/en_US-amy-medium.onnx --output_file /home/brilja/Desktop/VChatGPT/tmp/wavs/heyo${next_numb}.wav; } &
 
         # Capture the PID of the process
         PID=$!
