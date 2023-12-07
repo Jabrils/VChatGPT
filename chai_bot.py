@@ -5,6 +5,7 @@ import openai
 import threading
 import random
 import sys
+import pyttsx3
 import os
 import json
 from datetime import datetime
@@ -13,7 +14,7 @@ import subprocess
 from colorama import Fore, Style, init
 import simpleaudio as sa
 import re
-# ... (rest of your imports)
+import shutil
 
 running = True
 state = "smile"
@@ -21,23 +22,26 @@ voice = []
 order = 0
 i_heard_you = 2
 dir_tmp = "/home/brilja/Desktop/VChatGPT/tmp"
+next_Audio_Name = 0
+
 # Open the file and read the lines into a list
 with open("listeners", "r") as file:
     listeners = [line.strip() for line in file]
-    
+
 def run_piper(text):
     global state
     global order
     
     create_directories()
 
-    split_text = re.split(r'[.!?;:]', text)
+    split_text = re.split(r'[.!,?;:]', text)
     # print(split_text)
     for t in split_text:
         padded_number = "{:04}".format(order)  # Pads with zeros to a width of 4
 
+        fifo_name = f'{dir_tmp}/fifos/piper_fifo_-_{padded_number}'
         # 
-        with open(f'{dir_tmp}/fifos/piper_fifo_{padded_number}', 'w') as fifo:
+        with open(fifo_name, 'w') as fifo:
             fifo.write(t)
         order+=1
 
@@ -47,41 +51,27 @@ def monitor_audio_state():
     global running  # Access the global running flag
     global state
     global voice
+    global next_Audio_Name
     
     create_directories()
 
     while running:  # Assuming `running` is a flag you use to control your threads
         path_To = f'{dir_tmp}/wavs'
 
-        # 
-        if os.listdir(path_To):
-            files = [os.path.join(path_To, file) for file in os.listdir(path_To)]
-            voice = list(set(voice + files))
-            print("VOICE CONFIRM:", voice)
+        next_Up = os.path.join(path_To, "{:04}".format(next_Audio_Name) + ".wav")
 
-        # 
-        play_audio_queue()
-        
-def play_audio_queue():
-    global voice
-    global state
-
-    try:
-        while voice:  # Continue until the voice list is empty
-            wav_path = voice[0]  # Get the first path in the list
-
-            # if 
-            if os.path.getsize(wav_path) > 0:
-                wave_obj = sa.WaveObject.from_wave_file(wav_path)
-                play_obj = wave_obj.play()
-                state = "talking"
-                play_obj.wait_done()  # Wait for the audio to finish playing
-                state = "smile"
-                os.remove(voice[0]) # delete it
-                voice.pop(0)  # Remove the path from the list
-    except Exception as e:
-        print(f"Exception: {e}")
-        print(f"E type: {type(e)}")
+        try:
+            if os.path.getsize(next_Up) > 0:
+               wave_obj = sa.WaveObject.from_wave_file(next_Up)
+               play_obj = wave_obj.play()
+               state = "talking"
+               play_obj.wait_done()  # Wait for the audio to finish playing
+               state = "smile"
+               next_Audio_Name += 1
+               os.remove(next_Up) # delete it
+        except Exception as e:
+            print(f"Exception: {e}")
+            print(f"E type: {type(e)}")        
 
 def display_image(image_path_smile, image_path_blinking, image_path_talking, image_path_thinking, image_path_listening):
     global running  # Access the global running flag
@@ -296,7 +286,7 @@ def handle_conversation():
             print(f"Exception: {e}")
 
 def create_directories():
-    dirs_to_create = [f"{dir_tmp}/fifos", f"{dir_tmp}/wavs"]
+    dirs_to_create = [f"{dir_tmp}/fifos", f"{dir_tmp}/wavs", f"{dir_tmp}/processing"]
 
     for dir_path in dirs_to_create:
         os.makedirs(dir_path, exist_ok=True)
@@ -304,6 +294,12 @@ def create_directories():
 def main():
     global running  # Access the global running flag
     print("Current working directory:", os.getcwd())
+    # Check if the directory exists
+    if os.path.exists(dir_tmp):
+        # Recursively delete everything in the directory
+        shutil.rmtree(dir_tmp)
+        print(f"Successfully deleted everything in {dir_tmp}")
+
     create_directories()
     
     # Start the Bash script
