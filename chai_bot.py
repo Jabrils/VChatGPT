@@ -5,7 +5,6 @@ import openai
 import threading
 import random
 import sys
-import pyttsx3
 import os
 import json
 from datetime import datetime
@@ -22,7 +21,10 @@ voice = []
 order = 0
 i_heard_you = 2
 dir_tmp = "/home/brilja/Desktop/VChatGPT/tmp"
-
+# Open the file and read the lines into a list
+with open("listeners", "r") as file:
+    listeners = [line.strip() for line in file]
+    
 def run_piper(text):
     global state
     global order
@@ -183,6 +185,13 @@ def speak(text):
     engine.runAndWait()
     state = "smile"
 
+def extract_text_after_keyword(text, keywords):
+    lower_text = text.lower()
+    for keyword in keywords:
+        if keyword in lower_text:
+            return text.split(keyword, 1)[1]  # Splits at the first occurrence of the keyword
+    return None  # or some default value if no keyword is found
+
 def listen():
     global running  # Access the global running flag
     global state
@@ -198,9 +207,11 @@ def listen():
                 text = recognizer.recognize_google(audio_data)
                 print(f"\t{Fore.GREEN}You{Style.RESET_ALL}:", text)
 
+                result = extract_text_after_keyword(text, listeners)
+
                 # 
-                if "chai" in text.lower():
-                    return text.split('chai')[1]
+                if result is not None:
+                    return result
                 else:
                     return "~"
             except sr.UnknownValueError:
@@ -240,6 +251,7 @@ def handle_conversation():
     openai.api_key = key
 
     personality = open("personality", "r").read().strip('\n')
+
     thread = []
     thread.append({"role": "system", "content": personality})
 

@@ -2,6 +2,7 @@
 
 counter=0
 dir="/home/brilja/Desktop/VChatGPT/tmp/fifos"
+
 while :; do
     for fifo_file in $dir/*; do
         next_numb=$(printf "%04d" $counter)
@@ -14,9 +15,9 @@ while :; do
         # Wait for the process to finish
         wait $PID
 
-        if [ -z "$(ls -A $dir)" ]; then
-            continue #exit the loop
-        fi 
+        # if [ -z "$(ls -A $dir)" ]; then
+        #     continue #exit the loop
+        # fi 
 
         # Increment the counter
         ((counter++))
