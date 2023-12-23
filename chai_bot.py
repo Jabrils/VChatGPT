@@ -21,11 +21,12 @@ state = "smile"
 voice = []
 order = 0
 i_heard_you = 2
-dir_tmp = "/home/brilja/Desktop/VChatGPT/tmp"
+abs_path = "/home/brilja/Desktop/VChatGPT/"
+dir_tmp = f"{abs_path}/tmp"
 next_Audio_Name = 0
 
 # Open the file and read the lines into a list
-with open("listeners", "r") as file:
+with open(os.path.join(abs_path, "listeners"), "r") as file:
     listeners = [line.strip() for line in file]
 
 def run_piper(text):
@@ -70,8 +71,7 @@ def monitor_audio_state():
                next_Audio_Name += 1
                os.remove(next_Up) # delete it
         except Exception as e:
-            print(f"Exception: {e}")
-            print(f"E type: {type(e)}")        
+            pass
 
 def display_image(image_path_smile, image_path_blinking, image_path_talking, image_path_thinking, image_path_listening):
     global running  # Access the global running flag
@@ -123,7 +123,7 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
 
             #
             # match state:
-            if state is "talking":
+            if state == "talking":
                 if current_time >= next_talk_time:
                     if talk_state:
                         current_image = image_smile
@@ -132,11 +132,11 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
                         current_image = image_talking
                         talk_state = True
                     next_talk_time = current_time + 75  # Set next change time to 1 second later
-            elif state is "thinking":
+            elif state == "thinking":
                 current_image = image_thinking
-            elif state is "listening":
+            elif state == "listening":
                 current_image = image_listening
-            elif state is "smile":
+            elif state == "smile":
                 if current_image is image_talking:
                     current_image = image_smile
 
@@ -179,7 +179,7 @@ def extract_text_after_keyword(text, keywords):
     lower_text = text.lower()
     for keyword in keywords:
         if keyword in lower_text:
-            return text.split(keyword, 1)[1]  # Splits at the first occurrence of the keyword
+            return lower_text.split(keyword, 1)[1]  # Splits at the first occurrence of the keyword
     return None  # or some default value if no keyword is found
 
 def listen():
@@ -190,8 +190,11 @@ def listen():
 
         with sr.Microphone() as source:
             #state = "smile"
+            recognizer.adjust_for_ambient_noise(source, .5)
+            print("Current energy threshold:", recognizer.energy_threshold)
+            recognizer.energy_threshold = 3000
             print("Please speak something...")
-            audio_data = recognizer.listen(source)
+            audio_data = recognizer.listen(source, timeout=2)
             print("Trying to understand...")
             try:
                 text = recognizer.recognize_google(audio_data)
@@ -215,7 +218,7 @@ def check_for_heard():
     global state
 
     # 
-    if state is "listening" and i_heard_you <= 0:
+    if state == "listening" and i_heard_you <= 0:
         state = "smile"
     
     i_heard_you -= 1
@@ -235,12 +238,12 @@ def handle_conversation():
     parser.add_argument('--cred', '-c', type=int, default=0, help='which creditials do you want to use')
     args = parser.parse_args()
 
-    key = open("gpt-4", "r").read().strip('\n')
+    key = open(os.path.join(abs_path, "gpt-4"), "r").read().strip('\n')
     print("\n")
 
     openai.api_key = key
 
-    personality = open("personality", "r").read().strip('\n')
+    personality = open(os.path.join(abs_path, "personality"), "r").read().strip('\n')
 
     thread = []
     thread.append({"role": "system", "content": personality})
@@ -251,8 +254,8 @@ def handle_conversation():
             if user_input is None:
                 print("Didn't catch that. Trying again.")
                 continue  # This will jump back to the start of the while loop
-            elif user_input is "~":
-                if state is "smile":
+            elif user_input == "~":
+                if state == "smile":
                         state = "listening"
                         i_heard_you = 100
                 print("You weren't talking to me so ill ignore that.")
@@ -293,7 +296,8 @@ def create_directories():
 
 def main():
     global running  # Access the global running flag
-    print("Current working directory:", os.getcwd())
+    # print("Current working directory:", os.getcwd())
+    
     # Check if the directory exists
     if os.path.exists(dir_tmp):
         # Recursively delete everything in the directory
@@ -303,7 +307,7 @@ def main():
     create_directories()
     
     # Start the Bash script
-    bash_script_process = subprocess.Popen(['bash', '/home/brilja/Desktop/VChatGPT/fifo_handler.sh'])
+    #bash_script_process = subprocess.Popen(['bash', '/home/brilja/Desktop/VChatGPT/fifo_handler.sh'])
     speak("Hi, I'm Chai!")
     
     while running:
