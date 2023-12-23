@@ -73,7 +73,7 @@ def monitor_audio_state():
         except Exception as e:
             pass
 
-def display_image(image_path_smile, image_path_blinking, image_path_talking, image_path_thinking, image_path_listening):
+def display_image(image_path_smile, image_path_blinking, image_path_talking, image_path_thinking, image_path_listening, image_path_overlay):
     global running  # Access the global running flag
     global state
     # Initialize Pygame
@@ -95,6 +95,10 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
     # Start with eyes open
     current_image = image_smile
 
+     # Load the overlay image
+    image_overlay = pygame.image.load(image_path_overlay)
+
+
     # Create a clock object to manage time
     clock = pygame.time.Clock()
 
@@ -107,6 +111,16 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
     talk_state = True
 
     while running:
+        overlay_condition = False
+
+        try:
+            # Add a boolean for overlay condition
+            path_To = f'{dir_tmp}/wavs'
+            # check if it has any files in path_To directory
+            overlay_condition = any(os.path.isfile(os.path.join(path_To, f)) for f in os.listdir(path_To))
+        except Exception as e:
+            print(f"Exception: {e}")
+
         try:
             check_for_heard()
             
@@ -155,6 +169,12 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
 
             # Blit the current image and update the display
             screen.blit(current_image, (0, 0))
+
+            # Check if overlay condition is True, then blit overlay image
+            if overlay_condition:
+                screen.blit(image_overlay, (0, 0))  # This adds the overlay on top
+
+            # Update the display
             pygame.display.flip()
 
             # Limit the frame rate to reduce CPU usage
@@ -316,9 +336,10 @@ def main():
         image_path_talking = '/home/brilja/Desktop/VChatGPT/Chai Faces/Talking.png'
         image_path_thinking = '/home/brilja/Desktop/VChatGPT/Chai Faces/Thinking.png'
         image_path_listening = '/home/brilja/Desktop/VChatGPT/Chai Faces/Listening.png'
+        image_path_has_Files = '/home/brilja/Desktop/VChatGPT/Chai Faces/Has Files.png'
 
         # Create threads for image display and conversation handling
-        display_thread = threading.Thread(target=display_image, args=(image_path_smile, image_path_blink, image_path_talking, image_path_thinking, image_path_listening))
+        display_thread = threading.Thread(target=display_image, args=(image_path_smile, image_path_blink, image_path_talking, image_path_thinking, image_path_listening, image_path_has_Files))
         conversation_thread = threading.Thread(target=handle_conversation)
         audio_monitor_thread = threading.Thread(target=monitor_audio_state)
 
