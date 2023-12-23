@@ -110,8 +110,8 @@ def display_image(image_path_smile, image_path_blinking, image_path_talking, ima
     running = True
     talk_state = True
 
+    overlay_condition = False
     while running:
-        overlay_condition = False
 
         try:
             # Add a boolean for overlay condition
